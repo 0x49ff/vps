@@ -1,0 +1,12 @@
+[DEFAULT]
+ignoreip = 127.0.0.1
+bantime = 12h
+maxretry = 3
+findtime = 10m
+
+[sshd]
+enabled = true
+backend = systemd
+mode = normal
+port = 51422
+logpath = /var/log/sshd.log

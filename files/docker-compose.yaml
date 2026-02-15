@@ -1,0 +1,32 @@
+services:
+  shadowsocks:
+    image: shadowsocks/shadowsocks-libev:latest
+    ports:
+      - $PROXY_PORT:8388
+    environment:
+      - METHOD=aes-256-gcm
+      - PASSWORD=$PROXY_PASSWORD
+    restart: always
+  mtproto:
+    image: telegrammessenger/proxy:latest
+    container_name: mtproto
+    restart: unless-stopped
+    ports:
+      - $MTPROXY_PORT:443/tcp
+    environment:
+      - SECRET=$MTPROXY_SECRET
+    volumes:
+      - mtproxy-config:/data
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    command:
+      - '--path.rootfs=/host'
+    network_mode: host
+    pid: host
+    restart: unless-stopped
+    volumes:
+      - '/:/host:ro,rslave'
+volumes:
+  mtproxy-config:
+    name: mtproxy-config

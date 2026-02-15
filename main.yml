@@ -1,0 +1,142 @@
+---
+- name: "VPS Deploy -- Shadowsocks/Fail2ban/Node Exporter/MTProto"
+  hosts: "{{ hosts }}"
+  ignore_unreachable: true
+  vars_files:
+    - vars.yaml
+
+  tasks:
+  - name: "Check OS Family"
+    debug: var=ansible_os_family
+
+  - block:
+    - name: "Update packages"
+      apt:
+        name: "*"
+        state: latest
+        update_cache: yes
+    
+    - name: "Install packages"
+      apt:
+        name: "{{ packages }}"
+        state: present
+      ignore_errors: true
+
+    - name: "Get GPG key"
+      get_url:
+        url: "https://download.docker.com/linux/debian/gpg"
+        dest: /etc/apt/keyrings/docker.asc
+        mode: 0644
+        force: true
+    
+    - name: "Add Docker repo"
+      apt_repository:
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+        state: present
+        update_cache: yes
+        filename: docker
+    
+    - name: "Install Docker"
+      apt:
+        name: "{{ docker }}"
+        update_cache: true
+        state: latest
+    when: ansible_os_family == "Debian"
+  
+  - block:
+    - name: "Update packages"
+      dnf:
+        name: "*"
+
+    - name: Add repository
+      get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docer-ce.repo
+    
+    - name: "Install packages"
+      dnf:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - "{{ packages }}"
+        - "epel-release"
+        - "yum-utils"
+        - "dnf-plugins-core"
+      ignore_errors: true
+
+    - name: "Install Docker"
+      dnf:
+        name: "{{ docker }}"
+        update_cache: true
+        state: latest
+    when: ansible_os_family == "RedHat"
+
+  - name: "Enable and start Docker"
+    systemd:
+      name: "docker"
+      state: started
+      enabled: true
+  
+  - name: "Copy jail.local"
+    copy:
+      src: ./files/jail.local
+      dest: /etc/fail2ban/jail.local
+      mode: 0644
+  
+  - name: "Create log files for Fail2Ban"
+    file:
+      path: '{{ item }}'
+      state: touch
+      mode: '0755'
+    loop:
+      - '/var/log/sshd.log'
+      - '/var/log/3proxy.log'
+  
+  - name: "Enable Fail2Ban"
+    systemd:
+      name: fail2ban
+      state: started
+      enabled: true
+
+  - name: "Copy compose and .env"
+    copy:
+      src: "./files/{{ item }}"
+      dest: "/root/docker/"
+      mode: 0644
+    loop:
+      - docker-compose.yaml
+      - .env
+
+  - name: "Start Docker Compose"
+    community.docker.docker_compose_v2:
+      project_src: "/root/docker/"
+    register: output_compose_run
+
+  - name: "Wait for containers to start"
+    wait_for:
+      timeout: 30
+
+  - name: Add multiple SSH keys to user
+    authorized_key:
+      user: "root"
+      state: present
+      key: "{{ item }}"
+    loop: "{{ ssh_keys if ssh_keys is sequence else [] }}"
+    when: ssh_keys is defined and ssh_keys is not none and (ssh_keys if ssh_keys is sequence else []) | length > 0
+
+  - name: "Configure SSH"
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      regexp: "^{{ item.regexp }}"
+      line: "{{ item.line }}"
+    loop:
+      - { regexp: "^#?Port .*$", line: "Port 51422" }
+      - { regexp: "^#?PasswordAuthentication .*$", line: "PasswordAuthentication no" }
+      - { regexp: "^#?PermitRootLogin .*$", line: "PermitRootLogin prohibit-password" }
+    notify: Restart SSH
+
+  handlers:
+  - name: Restart SSH
+    systemd:
+      name: sshd
+      state: restarted

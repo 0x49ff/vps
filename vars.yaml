@@ -1,0 +1,27 @@
+---
+
+packages:
+  - vim
+  - git
+  - curl
+  - wget
+  - htop
+  - iftop
+  - ca-certificates
+  - fail2ban
+  - dnsutils
+  - htop
+  - ncdu
+  - xxd
+
+docker:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+ssh_keys:
+  - ...
+  - ...
+  - ...
