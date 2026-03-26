@@ -5,18 +5,17 @@ services:
       - $PROXY_PORT:8388
     environment:
       - METHOD=aes-256-gcm
-      - PASSWORD=$PROXY_PASSWORD
+      - PASSWORD=$SHADOWSOCKS_PASSWORD
     restart: always
-  mtproto:
-    image: telegrammessenger/proxy:latest
-    container_name: mtproto
+  socks5:
+    image: serjs/go-socks5-proxy
+    container_name: socks5
     restart: unless-stopped
     ports:
-      - $MTPROXY_PORT:443/tcp
+      - $SOCKSPROXY_PORT:1080
     environment:
-      - SECRET=$MTPROXY_SECRET
-    volumes:
-      - mtproxy-config:/data
+      - PROXY_USER=$SOCKSPROXY_USERNAME
+      - PROXY_PASSWORD=$SOCKSPROXY_PASSWORD
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter
@@ -27,6 +26,3 @@ services:
     restart: unless-stopped
     volumes:
       - '/:/host:ro,rslave'
-volumes:
-  mtproxy-config:
-    name: mtproxy-config
