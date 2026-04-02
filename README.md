@@ -1,5 +1,5 @@
 # VPS Playbook
-Deploying - Shadowsocks, MTProto, Fail2ban, Node Exporter  
+Deploying - Shadowsocks, MTProto (telemt), Fail2ban, Node Exporter  
 
 # Usage:  
 ```sh

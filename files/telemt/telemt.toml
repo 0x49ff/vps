@@ -1,0 +1,26 @@
+# === General Settings ===
+[general]
+use_middle_proxy = false
+
+[general.modes]
+classic = false
+secure = false
+tls = true
+
+[server]
+port = 25443
+
+[server.api]
+enabled = true
+# listen = "127.0.0.1:9091"
+# whitelist = ["127.0.0.1/32"]
+# read_only = true
+
+# === Anti-Censorship & Masking ===
+[censorship]
+tls_domain = "ext-api.max.ru"
+
+[access.users]
+# format: "username" = "32_hex_chars_secret" openssl rand -hex 16
+user1 = "132d44a8267a0f577b9960f547448bab"
+user2 = "efcec85a759c1ab8770306f750eb595c"
